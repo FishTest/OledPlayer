@@ -22,7 +22,6 @@
 # goto cureent song,   menu options up,     confirm
 # previous menu item,  menu options down,   next menu item
 ############################################################################
-
 import os
 import time
 import subprocess
@@ -48,11 +47,11 @@ def initMcp():
 	
 # Init the oled screen
 def initOled():
+	global oled,image,draw
 	RST        = 25
 	DC         = 24
 	SPI_PORT   = 0
 	SPI_DEVICE = 0
-	global oled,image,draw
 	oled = Adafruit_SSD1306.SSD1306_128_64(rst=RST, dc=DC, spi=SPI.SpiDev(SPI_PORT, 
 		SPI_DEVICE, max_speed_hz=8000000))
 	oled.begin()
@@ -65,17 +64,14 @@ def initOled():
 	
 # init MPD socket,one for read settings,another for change settings
 def initMPDConnection():
-	global clientR,clientW
-	clientR = mpd.MPDClient() #use_unicode=True
-	clientR.connect("localhost", 6600)
-	clientW = mpd.MPDClient() #use_unicode=True
-	clientW.connect("localhost", 6600)
+	global MPDClient,MPDClientW
+	MPDClient = mpd.MPDClient() #use_unicode=True
+	MPDClient.connect("localhost", 6600)
 	
 # Disconnect MPD socket
 def disconnectMPD():
-	global clientR,clientW
-	clientW.disconnect()
-	clientR.disconnect()
+	global MPDClient
+	MPDClient.disconnect()
 	
 # Exit function
 def exitSystem(n):
@@ -84,7 +80,7 @@ def exitSystem(n):
 	mcp.output(6,1)
 	sleep(1)
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
-	draw.text((10,16), 'Bye!', font=font, fill=255)
+	draw.text((10,16), 'Bye!', font=fontTitle, fill=255)
 	oled.image(image)
 	oled.display()
 	disconnectMPD()
@@ -115,12 +111,21 @@ def u(s):
 	
 # Check current MPD status
 def getCurrentPlaying():
-	global nowPlaying,clientR,curArtist,theAlbum,previousSong,theFile,playState
-	cs =  clientR.currentsong()
+	global nowPlaying,MPDClient,curArtist,theAlbum,previousSong,theFile,playState,isHD
+	lock.acquire()
+	try:
+		cs =  MPDClient.currentsong()
+	finally:
+		lock.release()
 	nowPlaying = removeAD(cs.get('title',''))
 	curArtist = removeAD(cs.get('artist',''))
 	theAlbum = removeAD(cs.get('album',''))
 	theFile = cs.get('file','')
+	hdFileNames = ['flac','.ape','.wav']
+	isHD = False
+	if theFile is not '':
+		if theFile[-4:].lower() in hdFileNames:
+			isHD = True
 	# judge if new song be playing (by checking filename).
 	if previousSong != theFile:
 		initEventTime()
@@ -128,8 +133,12 @@ def getCurrentPlaying():
 
 # Get playlist
 def getPlaylist():
-	global playList,clientR,screenMode,curMenuItem
-	playList = clientR.playlist()
+	global playList,MPDClient,screenMode,curMenuItem
+	lock.acquire()
+	try:
+		playList = MPDClient.playlist()
+	finally:
+		lock.release()
 	#if there's no music file jump to update playlist menu
 	if len(playList) == 0:
 		screenMode = 2
@@ -170,7 +179,11 @@ def setPage(n):
 # Get MPD Status
 def getPlayerStates():
 	global isRepeat,isRandom,isSingle,isConsume,theVolume,playState,theTime,theVolume,s
-	s = clientR.status()
+	lock.acquire()
+	try:
+		s = MPDClient.status()
+	finally:
+		lock.release()
 	#print s
 	theVolume = s.get('volume','-1')
 	isConsume = s.get('consume','0')
@@ -197,43 +210,44 @@ def numToBool(v):
 # Set MPD status
 def setMPDStatus(i,v):
 	global theVolume,pageCount,curPage,maxScreenLines
-	if i == 'single':
-		clientW.single(v)
-	elif i == 'random':
-		clientW.random(v)
-	elif i == 'consume':
-		clientW.consume(v)
-	elif i == 'repeat':
-		clientW.repeat(v)
-	elif i == 'previous':
-		clientW.previous()
-	elif i == 'next':
-		clientW.next()
-	elif i == 'play':
-		if playState == "play":
-			clientW.pause()
-		else:
-			clientW.play()
-	elif i == 'volume':
-		if v:
-			if theVolume <= 95:
-				theVolume = theVolume + 5
-		else:
-			if theVolume >= 5:
-				theVolume = theVolume - 5
-		clientW.setvol(str(theVolume))
-	elif i == 'update':
-		clientW.clear()
-		clientW.update()
-		clientW.findadd("any","")
-		sleep(1)
-		gotoPlaylist() 
-	elif i == 'songid':
-		if pageCount == 1:
-			clientW.play(str(v-1))
-		else:
-			clientW.play(str((curPage - 1) * maxScreenLines + v -1))
-			
+	lock.acquire()
+	try:
+		if i == 'single':
+			MPDClient.single(v)
+		elif i == 'random':
+			MPDClient.random(v)
+		elif i == 'consume':
+			MPDClient.consume(v)
+		elif i == 'repeat':
+			MPDClient.repeat(v)
+		elif i == 'previous':
+			MPDClient.previous()
+		elif i == 'next':
+			MPDClient.next()
+		elif i == 'play':
+			if playState == "play":
+				MPDClient.pause()
+			else:
+				MPDClient.play()
+		elif i == 'volume':
+			if v:
+				if theVolume <= 95:
+					theVolume = theVolume + 5
+			else:
+				if theVolume >= 5:
+					theVolume = theVolume - 5
+			MPDClient.setvol(str(theVolume))
+		elif i == 'update':
+			MPDClient.clear()
+			MPDClient.update()
+			MPDClient.findadd("any","")
+		elif i == 'songid':
+			if pageCount == 1:
+				MPDClient.play(str(v-1))
+			else:
+				MPDClient.play(str((curPage - 1) * maxScreenLines + v -1))
+	finally:
+		lock.release()
 # Convert seconds to minute:seconds
 def converSecondToMinute(s):
 	return "{:0>2d}".format(s / 60) + ':' + "{:0>2d}".format(s % 60)
@@ -278,13 +292,15 @@ def dispCurrentPlaying():
 	for i in range(0,len(iconVolume) / 2):
 		if iconVolume[i*2] <= vol:
 			draw.point((110 + iconVolume[i*2],iconVolume[i*2+1] + 1),fill = 255)
-	draw.text((1,12),u(curArtist),font = font14 ,fill = 255)
-	TitleW = draw.textsize(u(nowPlaying),font = font)[0]
+	draw.text((1,12),u(curArtist),font = fontMain ,fill = 255)
+	TitleW = draw.textsize(u(nowPlaying),font = fontTitle)[0]
 	if TitleW > 128:
 		TitleX = 0
 	else:
 		TitleX = (128 - TitleW) / 2
-	draw.text((TitleX,32),u(nowPlaying),font = font ,fill = 255)
+	draw.text((TitleX,30),u(nowPlaying),font = fontTitle ,fill = 255)
+	if isHD:
+		draw.text((92,0), 'HD', font=fontSmall, fill=255)
 	#Draw the progressbar
 	if ':' in theTime:
 		percent = float(theTime.split(":")[0]) / float(theTime.split(":")[1])
@@ -307,7 +323,7 @@ def dispPlayList():
 	drawIcon(1,1,iconMenu)
 	draw.text((9,0),'(' + str(curPage) + '/' + str(pageCount) + ')',font = fontSmall,fill = 255)
 	for i in range(0,actualScreenLines):
-		draw.text((8,(i+1) * 13 - 3),u(screenList[i]),font = font14,fill = 255)
+		draw.text((8,(i+1) * 13 - 2),u(screenList[i]),font = fontMain,fill = 255)
 	#draw triangle on the left
 	for i in range(0,len(triangle) / 2):
 		drawIcon(1,(cursorPosition) * 13 + 2,triangle)
@@ -324,16 +340,16 @@ def dispMenu():
 		menuTitle = u(menu[(curMenuItem-1)*3]) + '(' + u(numToBool(int(s.get(menu[(curMenuItem-1)*3+2].lower(),'')))) + ')'
 	else:
 		menuTitle = u(menu[(curMenuItem-1)*3])
-	menuW = draw.textsize(menuTitle,font = font14)[0]
-	draw.text(((128 - menuW)/2,1),menuTitle,font = font14,fill = 255)
+	menuW = draw.textsize(menuTitle,font = fontMain)[0]
+	draw.text(((128 - menuW)/2,1),menuTitle,font = fontMain,fill = 255)
 	#draw current options of current menu item
 	curMenuOptions = menu[(curMenuItem-1)*3 + 1].split('|')
 	draw.line((5, 19, 122, 19), fill=255)
 	for i in range(0,len(curMenuOptions)):
 		if i == curMenuOptionsPosition - 1:
-			draw.text((20,i*14 + 22),'-> ' + u(curMenuOptions[i]),font=font14,fill = 255)
+			draw.text((20,i*14 + 22),'-> ' + u(curMenuOptions[i]),font=fontMain,fill = 255)
 		else:
-			draw.text((20,i*14 + 22),'    ' + u(curMenuOptions[i]),font=font14,fill = 255)
+			draw.text((20,i*14 + 22),'    ' + u(curMenuOptions[i]),font=fontMain,fill = 255)
 	oled.image(image)
 	oled.display()
 
@@ -342,8 +358,16 @@ def dispAnimation():
 	global screenMode,lastEventTime,timeBefAni,keyPressed
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
 	getCurrentPlaying()
-	info = u('   《' + nowPlaying + '》-' + curArtist + '-《' + theAlbum + '》')
-	infoW = draw.textsize(info,font = font)[0]
+	if nowPlaying is not '':
+		info = '《' + nowPlaying + '》'
+	if curArtist is not '':
+		info = info + '-' + curArtist
+	if theAlbum is not '':
+		info = info + '-《' + theAlbum + '》'
+	if info is '':
+		info = theFile
+	info = u(info)
+	infoW = draw.textsize(info,font = fontTitle)[0]
 	fileNow = theFile
 	keyPressed = False
 	for i in range(0,infoW - 128):
@@ -352,7 +376,7 @@ def dispAnimation():
 			initEventTime()
 			break
 		draw.rectangle((0,23,127,42),outline=0,fill=0)
-		draw.text((0-i,24),info,font=font,fill=255)
+		draw.text((0 - i,24),info,font=fontTitle,fill=255)
 		oled.image(image)
 		oled.display()
 		mcp.output(6,1)
@@ -422,6 +446,7 @@ def k(k):
 				cursorPosition = maxScreenLines
 				setPage(0)
 		if k is 2:
+			initEventTime()
 			setMPDStatus('songid',cursorPosition)
 		if k is 3:
 			setPage(0)
@@ -510,6 +535,7 @@ print "Init..."
 screenMode        = 0
 keyPressed        = False
 isClosing         = False
+isHD              = False
 # MPD Status
 isRepeat          = isRandom = isSingle  = isConsume = playState = ""
 nowPlaying        = theAlbum = curArtist = ""
@@ -524,11 +550,11 @@ actualScreenLines = 0           #actual lines of screen
 screenList        = []          #empty lines of screen
 cursorPosition    = 1           #cursor position of playlist on screen
 previousSong      = ""          #previous song filename
-timeBefAni        = 5           #when swich to a new song,display animation after 8 seconds
-lastEventTime      = time.time()
+timeBefAni        = 8           #when swich to a new song,display animation after 8 seconds
+lastEventTime     = time.time()
 # Font Settings
-font              = ImageFont.truetype('/usr/share/fonts/opentype/SourceHanSansCN-Light.otf', 16)
-font14            = ImageFont.truetype('/usr/share/fonts/opentype/SourceHanSansCN-Light.otf', 14)
+fontTitle         = ImageFont.truetype('/usr/share/fonts/opentype/SourceHanSansCN-Light.otf', 18)
+fontMain           = ImageFont.truetype('/usr/share/fonts/opentype/SourceHanSansCN-Light.otf', 13)
 fontSmall         = ImageFont.truetype('/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf', 10)
 # Menu & Menu language Settings
 menuEnglish       = ['Close','HALT|REBOOT|EXIT','','Random','ON|OFF','Random','Single','ON|OFF','Single',
@@ -554,8 +580,8 @@ iconVolume        = [1,6,2,5,2,6,3,4,3,5,3,6,4,3,4,4,4,5,4,6,5,2,5,3,5,4,5,5,5,6
 initMcp()                        #init oled screen
 initOled()
 # Start Splash on background
-tSplash = threading.Thread(target=splash)
-tSplash.start()
+lock = threading.Lock()
+splash()
 # Init MPD etc...
 initMPDConnection()              #system initing...
 setMPDStatus('consume',0)        #set consume default to off
