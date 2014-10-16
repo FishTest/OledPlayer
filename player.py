@@ -1,7 +1,7 @@
 # coding=UTF-8
 ###########################################################################
-# PiCobber Oled Player Program By FishX (http://weibo.com/2731710965)
-# PiCobber & OLED Library   by Ukonline (http://ukonline2000.com/)
+# PiCobber Oled Player Program (V0.8 Stable) By FishX (http://weibo.com/2731710965)
+# PiCobber by Ukonline (http://ukonline2000.com/)
 # support MPD & MPD based linux system,like Raspbian,Volume etc...
 ###########################################################################
 # HOWTO USE:
