@@ -250,7 +250,10 @@ def setMPDStatus(i,v):
 		lock.release()
 # Convert seconds to minute:seconds
 def converSecondToMinute(s):
-	return "{:0>2d}".format(s / 60) + ':' + "{:0>2d}".format(s % 60)
+	if int(time.time()) % 2 is 1:
+		return "{:0>2d}".format(s / 60) + ':' + "{:0>2d}".format(s % 60)
+	else:
+		return "{:0>2d}".format(s / 60) + ' ' + "{:0>2d}".format(s % 60)
 	
 # The time while the song changed
 def initEventTime():
@@ -276,14 +279,19 @@ def dispCurrentPlaying():
 	drawIcon(1,1,iconMenu)
 	if int(isSingle):
 		drawIcon(13,1,iconSingle)
+		#draw.text((13,-1),'S',font = fontSmall ,fill = 255)
 	if int(isRepeat):
 		drawIcon(25,1,iconRepeat)
+		#draw.text((25,-1),'R',font = fontSmall ,fill = 255)
 	if int(isRandom):
 		drawIcon(37,1,iconRandom)
+		#draw.text((37,-1),'Rdm',font = fontSmall ,fill = 255)
 	else:
+		#pass
 		drawIcon(37,1,iconOrder)
 	if int(isConsume):
 		drawIcon(49,1,iconConsume)
+		#draw.text((49,-1),'C',font = fontSmall ,fill = 255)
 	if playState == "play":
 		drawIcon(120,2,iconPause)
 	else:
@@ -293,12 +301,17 @@ def dispCurrentPlaying():
 		if iconVolume[i*2] <= vol:
 			draw.point((110 + iconVolume[i*2],iconVolume[i*2+1] + 1),fill = 255)
 	draw.text((1,12),u(curArtist),font = fontMain ,fill = 255)
-	TitleW = draw.textsize(u(nowPlaying),font = fontTitle)[0]
+	if nowPlaying.strip() is '':
+		title = u(theFile)
+	else:
+		title = u(nowPlaying)
+	TitleW = draw.textsize(title,font = fontTitle)[0]
 	if TitleW > 128:
 		TitleX = 0
 	else:
 		TitleX = (128 - TitleW) / 2
-	draw.text((TitleX,30),u(nowPlaying),font = fontTitle ,fill = 255)
+	draw.text((TitleX,30),title,font = fontTitle ,fill = 255)
+	
 	if isHD:
 		draw.text((92,0), 'HD', font=fontSmall, fill=255)
 	#Draw the progressbar
@@ -309,7 +322,11 @@ def dispCurrentPlaying():
 	draw.rectangle((32,58,97,61),outline=255)
 	draw.rectangle((33,59,33 + int(66 * percent),60),outline=255)
 	#Draw the time
-	draw.text((0,55), time.strftime('%H:%M',time.gmtime()), font=fontSmall, fill=255)
+	if int(time.time()) % 2 is 1:
+		fmtTime = '%H:%M'
+	else:
+		fmtTime = '%H %M'
+	draw.text((0,55), time.strftime(fmtTime,time.gmtime()), font=fontSmall, fill=255)
 	draw.text((98,55),converSecondToMinute(int(theTime.split(":")[0])),font = fontSmall ,fill = 255)
 	oled.image(image)
 	oled.display()
@@ -358,6 +375,7 @@ def dispAnimation():
 	global screenMode,lastEventTime,timeBefAni,keyPressed
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
 	getCurrentPlaying()
+	info = ''
 	if nowPlaying is not '':
 		info = '《' + nowPlaying + '》'
 	if curArtist is not '':
@@ -370,12 +388,19 @@ def dispAnimation():
 	infoW = draw.textsize(info,font = fontTitle)[0]
 	fileNow = theFile
 	keyPressed = False
-	for i in range(0,infoW - 128):
+	for i in range(-128,infoW):
 		if keyPressed is True:
 			sleep(0.1)
 			initEventTime()
 			break
-		draw.rectangle((0,23,127,42),outline=0,fill=0)
+		draw.rectangle((0,0,127,63),outline=0,fill=0)
+		if isHD and (int(time.time()) % 2 is 0):
+			draw.text((92,0), 'HD', font=fontSmall, fill=255)
+		if int(time.time()) % 2 is 1:
+			fmtTime = '%H:%M'
+		else:
+			fmtTime = '%H %M'
+		draw.text((0,55), time.strftime(fmtTime,time.gmtime()), font=fontSmall, fill=255)
 		draw.text((0 - i,24),info,font=fontTitle,fill=255)
 		oled.image(image)
 		oled.display()
