@@ -1,6 +1,6 @@
 # coding=UTF-8
 ###########################################################################
-# PiCobber Oled Player Program (V0.8 Stable) By FishX (http://weibo.com/2731710965)
+# PiCobber Oled Player Program (V0.9 Stable) By FishX (http://weibo.com/2731710965)
 # PiCobber by Ukonline (http://ukonline2000.com/)
 # support MPD & MPD based linux system,like Raspbian,Volume etc...
 ###########################################################################
@@ -23,18 +23,18 @@
 # previous menu item,  menu options down,   next menu item
 ############################################################################
 import os
-import time
-import subprocess
-import threading
-import mpd
 import sys
+import time
+import threading
+import subprocess
+import mpd
 import Adafruit_GPIO as GPIO
 import Adafruit_GPIO.SPI as SPI
+import Adafruit_GPIO.MCP230xx as Raspi_MCP230XX
 import Adafruit_SSD1306
 import Image
 import ImageDraw
 import ImageFont
-import Adafruit_GPIO.MCP230xx as Raspi_MCP230XX
 from   time import sleep
 
 # Init control keys
@@ -401,7 +401,10 @@ def dispAnimation():
 		oled.image(image)
 		oled.display()
 		mcp.output(6,GPIO.HIGH)
-		
+		getPlayerStates()
+		if int(theTime.split(":")[0]) - int(theTime.split(":")[1]) is 0:
+			sleep(2)
+			break;
 # Display splash screen
 def splash():
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
