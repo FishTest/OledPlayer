@@ -28,22 +28,24 @@ import subprocess
 import threading
 import mpd
 import sys
+import Adafruit_GPIO as GPIO
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_SSD1306
 import Image
 import ImageDraw
 import ImageFont
-from   Raspi_MCP230xx import Raspi_MCP230XX
+import Adafruit_GPIO.MCP230xx as Raspi_MCP230XX
 from   time import sleep
 
 # Init control keys
 def initMcp():
 	global mcp
-	mcp = Raspi_MCP230XX(address = 0x20, num_gpios = 8)
+	mcp = Raspi_MCP230XX.MCP23008(address = 0x20)
 	for i in range(0,6):
-		mcp.config(i,mcp.INPUT)
-	mcp.config(6,mcp.OUTPUT)
-	mcp.output(6,1)                         # LED OUTPUT Low (Off)
+		mcp.setup(i,GPIO.IN)
+		mcp.pullup(i,True)
+	mcp.setup(6,GPIO.OUT)
+	mcp.output(6,GPIO.HIGH)                         # LED OUTPUT HIGH (off)
 	
 # Init the oled screen
 def initOled():
@@ -77,7 +79,7 @@ def disconnectMPD():
 def exitSystem(n):
 	global screenMode,isClosing
 	isClosing = True
-	mcp.output(6,1)
+	mcp.output(6,GPIO.HIGH)
 	sleep(1)
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
 	draw.text((10,16), 'Bye!', font=fontTitle, fill=255)
@@ -197,16 +199,10 @@ def getPlayerStates():
 # Convert 1,0 to ON,OFF
 def numToBool(v):
 	if menu == menuChinese:
-		if v:
-			return '开'
-		else:
-			return '关'
+		return '开' if v else '关'
 	else:
-		if v:
-			return 'ON'
-		else:
-			return 'OFF'
-			
+		return 'ON' if v else 'OFF'
+	
 # Set MPD status
 def setMPDStatus(i,v):
 	global theVolume,pageCount,curPage,maxScreenLines
@@ -404,7 +400,7 @@ def dispAnimation():
 		draw.text((0 - i,24),info,font=fontTitle,fill=255)
 		oled.image(image)
 		oled.display()
-		mcp.output(6,1)
+		mcp.output(6,GPIO.HIGH)
 		
 # Display splash screen
 def splash():
@@ -419,26 +415,12 @@ def splash():
 # KeyChecking thread
 def checkKeyPress():
 	while True:
-		if mcp.input(0) is 0:
-			mcp.output(6,0)
-			k(0)
-		elif mcp.input(1) is 0:
-			mcp.output(6,0)
-			k(1)
-		elif mcp.input(2) is 0:
-			mcp.output(6,0)
-			k(2)
-		elif mcp.input(3) is 0:
-			mcp.output(6,0)
-			k(3)
-		elif mcp.input(4) is 0:
-			mcp.output(6,0)
-			k(4)
-		elif mcp.input(5) is 0:
-			mcp.output(6,0)
-			k(5)
+		for i in range(0,6):
+			if mcp.input(i) is GPIO.LOW:
+				mcp.output(6,GPIO.LOW)
+				k(i)
 		sleep(0.2)
-		mcp.output(6,1)
+		mcp.output(6,GPIO.HIGH)
 		keyPressed = False
 		
 # Press k to load the function
