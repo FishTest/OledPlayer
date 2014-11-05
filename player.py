@@ -389,7 +389,7 @@ def dispAnimation():
 		#	fmtTime = '%H:%M'
 		#else:
 		#	fmtTime = '%H %M'
-		draw.text((0,55), time.strftime(fmtTime,time.gmtime()), font=fontSmall, fill=255)
+		#draw.text((0,55), time.strftime(fmtTime,time.gmtime()), font=fontSmall, fill=255)
 		draw.text((0 - i,24),info,font=fontTitle,fill=255)
 		oled.image(image)
 		oled.display()
