@@ -272,30 +272,24 @@ def dispCurrentPlaying():
 		screenMode = 3
 		return
 	#Draw status icons
-	drawIcon(1,1,iconMenu)
+	draw.bitmap((1,1),iconMenu,1)
 	if int(isSingle):
-		drawIcon(13,1,iconSingle)
-		#draw.text((13,-1),'S',font = fontSmall ,fill = 255)
+		draw.bitmap((13,1),iconSingle,1)
 	if int(isRepeat):
-		drawIcon(25,1,iconRepeat)
-		#draw.text((25,-1),'R',font = fontSmall ,fill = 255)
+		draw.bitmap((25,1),iconRepeat,1)
 	if int(isRandom):
-		drawIcon(37,1,iconRandom)
-		#draw.text((37,-1),'Rdm',font = fontSmall ,fill = 255)
+		draw.bitmap((37,1),iconRandom,1)
 	else:
-		#pass
-		drawIcon(37,1,iconOrder)
+		draw.bitmap((37,2),iconOrder,1)
 	if int(isConsume):
-		drawIcon(49,1,iconConsume)
-		#draw.text((49,-1),'C',font = fontSmall ,fill = 255)
+		draw.bitmap((49,1),iconConsume,1)
 	if playState == "play":
-		drawIcon(120,2,iconPause)
+		draw.bitmap((122,1),iconPause,1)
 	else:
-		drawIcon(120,2,iconPlay)
+		draw.bitmap((122,1),iconPlay,1)
+	draw.bitmap((109,1),iconVolume,1)
 	vol = int(float(theVolume) * 6 / 100)
-	for i in range(0,len(iconVolume) / 2):
-		if iconVolume[i*2] <= vol:
-			draw.point((110 + iconVolume[i*2],iconVolume[i*2+1] + 1),fill = 255)
+	draw.rectangle((109+vol,1,116,7),outline=0,fill=0)
 	draw.text((1,12),u(curArtist),font = fontMain ,fill = 255)
 	if nowPlaying.strip() is '':
 		title = u(theFile)
@@ -307,9 +301,8 @@ def dispCurrentPlaying():
 	else:
 		TitleX = (128 - TitleW) / 2
 	draw.text((TitleX,30),title,font = fontTitle ,fill = 255)
-	
 	if isHD:
-		draw.text((92,0), 'HD', font=fontSmall, fill=255)
+		draw.bitmap((92,1),iconHD,1)
 	#Draw the progressbar
 	if ':' in theTime:
 		percent = float(theTime.split(":")[0]) / float(theTime.split(":")[1])
@@ -324,6 +317,7 @@ def dispCurrentPlaying():
 		fmtTime = '%H %M'
 	draw.text((0,55), time.strftime(fmtTime,time.gmtime()), font=fontSmall, fill=255)
 	draw.text((98,55),converSecondToMinute(int(theTime.split(":")[0])),font = fontSmall ,fill = 255)
+	
 	oled.image(image)
 	oled.display()
 
@@ -333,13 +327,12 @@ def dispPlayList():
 	getScreenList()
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
 	#display current page of playlist
-	drawIcon(1,1,iconMenu)
+	draw.bitmap((1,1),iconMenu,1)
 	draw.text((9,0),'(' + str(curPage) + '/' + str(pageCount) + ')',font = fontSmall,fill = 255)
 	for i in range(0,actualScreenLines):
 		draw.text((8,(i+1) * 13 - 2),u(screenList[i]),font = fontMain,fill = 255)
 	#draw triangle on the left
-	for i in range(0,len(triangle) / 2):
-		drawIcon(1,(cursorPosition) * 13 + 2,triangle)
+	draw.bitmap((1,(cursorPosition) * 13 + 2),iconTriangle,1)
 	oled.image(image)
 	oled.display()
 
@@ -348,7 +341,7 @@ def dispMenu():
 	global screenMode,curMenuItem,curMenuOptions,curMenuOptionsPosition
 	getPlayerStates()
 	draw.rectangle((0,0,127,63),outline=0,fill=0)
-	drawIcon(1,1,iconMenu)
+	draw.bitmap((1,1),iconMenu,1)
 	if curMenuItem > 1 and curMenuItem < menuItemCount:
 		menuTitle = u(menu[(curMenuItem-1)*3]) + '(' + u(numToBool(int(s.get(menu[(curMenuItem-1)*3+2].lower(),'')))) + ')'
 	else:
@@ -391,11 +384,11 @@ def dispAnimation():
 			break
 		draw.rectangle((0,0,127,63),outline=0,fill=0)
 		if isHD and (int(time.time()) % 2 is 0):
-			draw.text((92,0), 'HD', font=fontSmall, fill=255)
-		if int(time.time()) % 2 is 1:
-			fmtTime = '%H:%M'
-		else:
-			fmtTime = '%H %M'
+			draw.bitmap((92,1),iconHD,1)
+		#if int(time.time()) % 2 is 1:
+		#	fmtTime = '%H:%M'
+		#else:
+		#	fmtTime = '%H %M'
 		draw.text((0,55), time.strftime(fmtTime,time.gmtime()), font=fontSmall, fill=255)
 		draw.text((0 - i,24),info,font=fontTitle,fill=255)
 		oled.image(image)
@@ -577,16 +570,18 @@ curMenuItem       = 1            #current menu item (default:halt)
 curMenuOptions    = []           #current menu options of current menu
 curMenuOptionsPosition = 1       #the position of current menu options
 # IconData of satus screen size:6x6 pixel[x1,y1,x2,y2....]
-triangle          = [2,1,2,2,2,3,2,4,2,5,2,6,3,2,3,3,3,4,3,5,4,3,4,4]
-iconMenu          = [2,1,3,1,4,1,5,1,1,2,6,2,1,3,3,3,4,3,6,3,1,4,3,4,4,4,6,4,1,5,6,5,2,6,3,6,4,6,5,6]
-iconOrder         = [1,1,3,1,4,1,5,1,6,1,1,3,3,3,4,3,5,3,6,3,1,5,3,5,4,5,5,5,6,5]
-iconRandom        = [1,1,3,1,5,1,2,2,4,2,6,2,1,3,3,3,5,3,2,4,4,4,6,4,1,5,3,5,5,5,2,6,4,6,6,6]
-iconSingle        = [2,1,3,1,4,1,5,1,2,2,2,3,3,3,4,3,5,3,5,4,5,5,2,6,3,6,4,6,5,6]
-iconRepeat        = [2,1,3,1,4,1,5,1,2,2,5,2,2,3,3,3,4,3,5,3,2,4,3,4,2,5,4,5,2,6,5,6]
-iconConsume       = [1,1,2,1,5,1,6,1,1,2,3,2,4,2,6,2,1,3,6,3,2,4,5,4,2,5,5,5,2,6,3,6,4,6,4,4]
-iconPause         = [2,1,5,1,2,2,5,2,2,3,5,3,2,4,5,4,2,5,5,5]
-iconPlay          = [2,1,2,2,3,2,2,3,3,3,4,3,2,4,3,4,4,4,2,5,3,5,2,6]
-iconVolume        = [1,6,2,5,2,6,3,4,3,5,3,6,4,3,4,4,4,5,4,6,5,2,5,3,5,4,5,5,5,6,1,6,2,6,3,6,4,6,5,6,6]
+iconTriangle      = Image.open('icon/iconTriangle.pbm').convert('1')
+iconMenu          = Image.open('icon/iconMenu.pbm').convert('1')
+iconOrder         = Image.open('icon/iconOrder.pbm').convert('1')
+iconRandom        = Image.open('icon/iconRandom.pbm').convert('1')
+iconSingle        = Image.open('icon/iconSingle.pbm').convert('1')
+iconRepeat        = Image.open('icon/iconRepeat.pbm').convert('1')
+iconConsume       = Image.open('icon/iconConsume.pbm').convert('1')
+iconPause         = Image.open('icon/iconPause.pbm').convert('1')
+iconPlay          = Image.open('icon/iconPlay.pbm').convert('1')
+iconVolume        = Image.open('icon/iconVolume.pbm').convert('1')
+iconHD            = Image.open('icon/iconHD.pbm').convert('1')
+
 initMcp()                        #init oled screen
 initOled()
 # Start Splash on background
