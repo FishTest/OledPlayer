@@ -1,6 +1,7 @@
-sudo apt-get install mpd python-dev python-pip python-smbus
+sudo apt-get install mpd python-dev python-pip python-smbus python-setuptools python-mpd
 sudo pip install python-mpd2
 
+sudo mkdir /usr/share/fonts/opentype
 sudo cp DejaVuSansMono.ttf /usr/share/fonts/truetype/ttf-dejavu/
 sudo cp SourceHanSansCN-Light.otf /usr/share/fonts/opentype/
 sudo fc-cache
