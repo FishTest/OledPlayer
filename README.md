@@ -1,4 +1,4 @@
-sudo apt-get install mpd python-dev python-pip python-smbus python-setuptools python-mpd
+sudo apt-get install mpd python-dev python-pip python-smbus python-setuptools python-mpd python-imaging
 sudo pip install python-mpd2
 
 sudo mkdir /usr/share/fonts/opentype
